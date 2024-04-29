@@ -1,0 +1,220 @@
+import tkinter
+import random
+from tkinter import *
+from tkinter import ttk
+from PIL import ImageTk,Image
+import math
+import matplotlib.pyplot as plt
+########################################Declaration de fonction #######################################
+class ville:
+    def __init__(self,num,x,y):
+        self.num=num
+        self.x=x
+        self.y=y
+
+    def distance(self,ville1):
+        return math.sqrt((self.x - ville1.x)**2 + (self.y - ville1.y)**2)
+        
+########################### fonction qui genere une population d'indevidu #############################
+def generer_Population(pop,dep,nbr):          
+    elems=[]
+
+    for i in range(nbr*2):
+        elem=random.sample(pop,nbr-1)
+        elems.append(dep+elem)
+
+    return elems
+
+##############################definir la fonction d'evaluation#########################################
+
+def evaluation_function(liste):  
+    somme=0 
+
+    for i in range(len(liste)-1):
+        somme=somme+liste[i].distance(liste[i+1])
+
+    somme=somme+liste[len(liste)-1].distance(liste[0])
+    
+    return somme
+
+##############################une fonction de trie####################################################
+
+def trie(liste):               
+
+    liste.sort(key=lambda x:evaluation_function(x))
+##############################une fonction qui calcule la moyenne#####################################
+
+def best(liste,nbr):
+    return sum(x[2] for x in liste)/nbr
+
+##############################une fonction de selection ##############################################
+
+def selection_function(liste):
+    liste.sort(key=lambda x:evaluation_function(x))
+    return liste[0:2]
+
+############################# une fonction de reproduction############################################
+def reproduction(liste):
+
+    enfant=[]
+
+    parent1=liste[0]
+    parent2=liste[1]
+    division=int(len(parent1)/2)
+
+    enfant1=parent1[0:division]
+    enfant2=parent2[0:division]
+    for i in parent2:
+        if i not in enfant1:
+            enfant1.append(i)
+    
+    for i in parent1:
+        if i not in enfant2:
+            enfant2.append(i)
+    enfant.append(enfant1)
+    enfant.append(enfant2)
+    
+    return enfant
+
+######################################definir une fonction de mutation#################################
+
+def mutation(liste,taux):
+    proba=random.random()
+    if(proba<taux):
+
+        elem=random.choice(liste)            #prendre un enfant 
+        index=liste.index(elem)
+
+        taille=list(range(1,len(elem)))              #inverser deux element 
+        pos1=random.choice(taille)               
+        pos2=random.choice(taille)
+        x=elem[pos1]
+        elem[pos1]=elem[pos2]
+        elem[pos2]=x
+        liste[index]=elem
+    return liste
+
+#############################################une fonction de formation####################################
+
+def formation(parent,enfant):
+    tab=parent+enfant
+    tabf=[]
+    for i in tab:
+
+        if i not in tabf:
+            tabf.append(i)
+
+    return tabf
+    
+
+
+##########################################################################################################
+
+def open_new(dic,best):
+    distance = list(dic.values())
+    etiration = list(dic.keys())
+    couleur= ['red' if v==best else 'blue' for v in distance]
+    # Créer le graphique
+    plt.bar(etiration, distance,color=couleur)
+    
+    # Ajouter un titre et des labels aux axes
+    plt.title('les meilleure distance de chaque generation')
+    plt.xlabel('generation')
+    plt.ylabel('distance')
+
+    # Afficher le graphique
+    plt.show()
+       
+
+##########################################################################################################
+##########################################################################################################
+def go():
+
+    ##############################Affiche de la nouvelle fenetre########################################## 
+
+    affiche = Canvas(fenetre, width=500, height=400,highlightbackground = "black",highlightthickness=2)
+    canvas.create_window(540, 450, window=affiche)
+
+    ######################################################################################################
+
+    taille=list(range(50,370))
+    nbr=int(entry.get())
+    list_ville=[]
+
+    #############################Affichage des ville de maniere aleatoire#################################
+
+    for i in range(nbr):
+
+        texte=""+str(i)
+        xp1=random.sample(taille, 1)[0]
+        yp1=random.sample(taille, 1)[0]
+        list_ville.append(ville(i,xp1,yp1))
+
+        if i==0:
+            p = affiche.create_oval(xp1 - 10, yp1 - 10, xp1 + 10, yp1 + 10, fill="red")
+        else:
+            p = affiche.create_oval(xp1-10,yp1-10,xp1+10,yp1+10,fill="green")
+
+        P1 = affiche.create_text(xp1, yp1, text=texte)
+
+    ################################################################################################# 
+
+    taux=0.4
+    pop=list_ville[1:]
+    depart=[list_ville[0]]
+    new_population=generer_Population(pop, depart, nbr)
+    bestval=evaluation_function(new_population[0])
+    bestpop=new_population[0]
+    nbrgeneration=1
+    dic={}
+    i=1
+    while(len(new_population)>1 and nbrgeneration <500):
+        parents=selection_function(new_population)
+        enfants=reproduction(parents)
+        new_population=formation(mutation(parents,taux),mutation(enfants,taux))
+        copie=list(new_population)
+        trie(copie)
+        dic[i]=evaluation_function(copie[0])
+        i=i+1
+        nbrgeneration=nbrgeneration+1
+        if evaluation_function(copie[0])<bestval:
+            bestval=evaluation_function(copie[0])
+            bestpop=copie[0]
+            nbrgeneration=1
+        print(bestval)
+        
+    ########################### affichage des lignes ###################################################
+
+    for i in range(len(bestpop)-1):
+        affiche.create_line(new_population[0][i].x+10,new_population[0][i].y,new_population[0][i+1].x,new_population[0][i+1].y-10,width=2,fill="red")
+
+    affiche.create_line(new_population[0][-1].x+10,new_population[0][-1].y,new_population[0][0].x,new_population[0][0].y-10,width=2,fill="red") 
+
+    ####################################################################################################
+
+    detail = Button(fenetre, text="details", command=lambda: open_new(dic,bestval))
+    canvas.create_window(85, 300, window=detail, width=90)
+
+    ################################################################################################################
+####################################################################################################################
+####################################################################################################################
+
+
+#creer une fenetre
+fenetre= Tk()
+#changer de titre
+fenetre.title("voyageur de commerce")
+fenetre.geometry("1028x720")
+fenetre.minsize(400, 400)
+fond_ecran=Image.open("fond.jpg")
+photo=ImageTk.PhotoImage(fond_ecran)
+canvas = Canvas(fenetre, width=fond_ecran.width, height=fond_ecran.height)
+canvas.pack()
+canvas.create_image(0, 0, image=photo, anchor="nw")
+label_window = canvas.create_text(300, 100, text="voyageur de commerce", anchor="nw",font=("Super Bloom",30),fill="#54C832")
+nbr_ville=canvas.create_text(150,200,text="Nombre de villes:",font=("Super Bloom",20),fill="#54C832")
+entry=Entry(fenetre)
+canvas.create_window(350,200,window=entry)
+bouton_go=Button(fenetre,text="GO",command=go,relief="raised")
+canvas.create_window(85, 250, window=bouton_go, width=90)
+fenetre.mainloop()
